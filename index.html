@@ -734,11 +734,29 @@ function showPage(name, btn) {
 
 // ─── INIT ─────────────────────────────────────────────────
 async function init() {
-  // Handle callback
   const params = new URLSearchParams(window.location.search);
+
+  // Cas 1 : le Worker a redirigé avec access_token directement dans l'URL
+  if (params.get('access_token')) {
+    const token   = params.get('access_token');
+    const athlete = params.get('athlete');
+    if (token && athlete) {
+      localStorage.setItem('strava_token', token);
+      localStorage.setItem('strava_athlete', decodeURIComponent(athlete));
+      history.replaceState({}, '', window.location.pathname);
+    }
+  }
+
+  // Cas 2 : code OAuth classique → échange via /token
   if (params.get('code')) {
     const ok = await handleCallback();
     if (!ok) { alert('Erreur de connexion Strava. Réessaie.'); return; }
+  }
+
+  // Cas 3 : erreur remontée par le Worker
+  if (params.get('error')) {
+    console.warn('OAuth error:', params.get('error'));
+    history.replaceState({}, '', window.location.pathname);
   }
 
   const token = getToken();
